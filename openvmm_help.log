@@ -1,0 +1,407 @@
+OpenVMM virtual machine monitor.
+
+This is not yet a stable interface and may change radically between versions.
+
+Usage: openvmm.exe [OPTIONS]
+
+Options:
+  -p, --processors <COUNT>
+          processor count
+          
+          [default: 1]
+
+  -m, --memory <SIZE>
+          guest RAM size
+          
+          [default: 1GB]
+
+  -M, --shared-memory
+          use shared memory segment
+
+      --prefetch
+          prefetch guest RAM
+
+  -P, --paused
+          start in paused state
+
+  -k, --kernel <FILE>
+          kernel image (when using linux direct boot)
+          
+          [default: ]
+
+  -r, --initrd <FILE>
+          initrd image (when using linux direct boot)
+          
+          [default: ]
+
+  -c, --cmdline <STRING>
+          extra kernel command line args
+
+      --hv
+          enable HV#1 capabilities
+
+      --vtl2
+          enable vtl2 - only supported in WHP and simulated without hypervisor support currently
+          
+          Currently implies --get.
+
+      --get
+          Add GET and related devices for using the OpenHCL paravisor to the highest enabled VTL
+
+      --no-get
+          Disable GET and related devices for using the OpenHCL paravisor, even when --vtl2 is passed
+
+      --no-alias-map
+          disable the VTL0 alias map presented to VTL2 by default
+
+      --isolation <ISOLATION>
+          enable isolation emulation
+          
+          [possible values: vbs]
+
+      --vsock-path <PATH>
+          the hybrid vsock listener path
+
+      --vtl2-vsock-path <PATH>
+          the VTL2 hybrid vsock listener path
+
+      --late-map-vtl0-policy <LATE_MAP_VTL0_POLICY>
+          the late map vtl0 ram access policy when vtl2 is enabled
+          
+          [default: halt]
+          [possible values: off, log, halt, exception]
+
+      --no-enlightenments
+          disable in-hypervisor enlightenment implementation (where possible)
+
+      --user-mode-apic
+          disable the in-hypervisor APIC and use the user-mode one (where possible)
+
+      --disk <FILE>
+          
+          e.g: --disk memdiff:file:/path/to/disk.vhd
+          
+          syntax: <path> | kind:<arg>[,flag,opt=arg,...]
+          
+          valid disk kinds:
+              `mem:<len>`                    memory backed disk
+                  <len>: length of ramdisk, e.g.: `1G`
+              `memdiff:<disk>`               memory backed diff disk
+                  <disk>: lower disk, e.g.: `file:base.img`
+              `file:<path>`                  file-backed disk
+                  <path>: path to file
+          
+          flags:
+              `ro`                           open disk as read-only
+              `dvd`                          specifies that device is cd/dvd and it is read_only
+              `vtl2`                         assign this disk to VTL2
+              `uh`                           relay this disk to VTL0 through Underhill
+          
+
+      --nvme <NVME>
+          
+          e.g: --nvme memdiff:file:/path/to/disk.vhd
+          
+          syntax: <path> | kind:<arg>[,flag,opt=arg,...]
+          
+          valid disk kinds:
+              `mem:<len>`                    memory backed disk
+                  <len>: length of ramdisk, e.g.: `1G`
+              `memdiff:<disk>`               memory backed diff disk
+                  <disk>: lower disk, e.g.: `file:base.img`
+              `file:<path>`                  file-backed disk
+                  <path>: path to file
+          
+          flags:
+              `ro`                           open disk as read-only
+              `vtl2`                         assign this disk to VTL2
+          
+
+      --scsi-sub-channels <COUNT>
+          number of sub-channels for the SCSI controller
+          
+          [default: 0]
+
+      --nic
+          expose a virtual NIC
+
+      --net <NET>
+          expose a virtual NIC with the given backend (consomme | dio | tap | none)
+          
+          Prefix with `uh:` to add this NIC via Mana emulation through Underhill, or `vtl2:` to assign this NIC to VTL2.
+
+      --kernel-vmnic <SWITCH_ID>
+          expose a virtual NIC using the Windows kernel-mode vmswitch.
+          
+          Specify the switch ID or "default" for the default switch.
+
+      --gfx
+          expose a graphics device
+
+      --vtl2-gfx
+          support a graphics device in vtl2
+
+      --vnc
+          listen for vnc connections. implied by gfx
+
+      --vnc-port <PORT>
+          VNC port number
+          
+          [default: 5900]
+
+      --apic-id-offset <APIC_ID_OFFSET>
+          set the APIC ID offset, for testing APIC IDs that don't match VP index
+          
+          [default: 0]
+
+      --vps-per-socket <VPS_PER_SOCKET>
+          the maximum number of VPs per socket
+
+      --smt <SMT>
+          enable or disable SMT (hyperthreading) (auto | force | off)
+          
+          [default: auto]
+
+      --x2apic <X2APIC>
+          configure x2apic (auto | supported | off | on)
+          
+          [default: auto]
+
+      --virtio-console
+          use virtio console
+
+      --virtio-console-pci
+          use virtio console enumerated via VPCI
+
+      --com1 <SERIAL>
+          COM1 binding (console | stderr | listen=\<path\> | file=\<path\> (overwrites) | listen=tcp:\<ip\>:\<port\> | term[=\<program\>][,name=<windowtitle>] | none)
+
+      --com2 <SERIAL>
+          COM2 binding (console | stderr | listen=\<path\> | file=\<path\> (overwrites) | listen=tcp:\<ip\>:\<port\> | term[=\<program\>][,name=<windowtitle>] | none)
+
+      --com3 <SERIAL>
+          COM3 binding (console | stderr | listen=\<path\> | file=\<path\> (overwrites) | listen=tcp:\<ip\>:\<port\> | term[=\<program\>][,name=<windowtitle>] | none)
+
+      --com4 <SERIAL>
+          COM4 binding (console | stderr | listen=\<path\> | file=\<path\> (overwrites) | listen=tcp:\<ip\>:\<port\> | term[=\<program\>][,name=<windowtitle>] | none)
+
+      --virtio-serial <SERIAL>
+          virtio serial binding (console | stderr | listen=\<path\> | file=\<path\> (overwrites) | listen=tcp:\<ip\>:\<port\> | term[=\<program\>][,name=<windowtitle>] | none)
+
+      --vmbus-com1-serial <SERIAL>
+          vmbus com1 serial binding (console | stderr | listen=\<path\> | file=\<path\> (overwrites) | listen=tcp:\<ip\>:\<port\> | term[=\<program\>][,name=<windowtitle>] | none)
+
+      --vmbus-com2-serial <SERIAL>
+          vmbus com2 serial binding (console | stderr | listen=\<path\> | file=\<path\> (overwrites) | listen=tcp:\<ip\>:\<port\> | term[=\<program\>][,name=<windowtitle>] | none)
+
+      --debugcon <SERIAL>
+          debugcon binding (port:serial, where port is a u16, and serial is (console | stderr | listen=\<path\> | file=\<path\> (overwrites) | listen=tcp:\<ip\>:\<port\> | term[=\<program\>][,name=<windowtitle>] | none))
+
+  -e, --uefi
+          boot UEFI firmware
+
+      --uefi-firmware <FILE>
+          UEFI firmware file
+          
+          [default: ]
+
+      --uefi-debug
+          enable UEFI debugging on COM1
+
+      --uefi-enable-memory-protections
+          enable memory protections in UEFI
+
+      --pcat-boot-order <PCAT_BOOT_ORDER>
+          set PCAT boot order as comma-separated string of boot device types (e.g: floppy,hdd,optical,net).
+          
+          If less than 4 entries are added, entries are added according to their default boot order (optical,hdd,net,floppy)
+          
+          e.g: passing "floppy,optical" will result in a boot order equivalent to "floppy,optical,hdd,net".
+          
+          Passing duplicate types is an error.
+
+      --pcat
+          Boot with PCAT BIOS firmware and piix4 devices
+
+      --pcat-firmware <FILE>
+          PCAT firmware file
+
+      --igvm <FILE>
+          boot IGVM file
+
+      --igvm-vtl2-relocation-type <IGVM_VTL2_RELOCATION_TYPE>
+          specify igvm vtl2 relocation type (absolute=\<addr\>, disable, auto=\<filesize,or memory size\>, vtl2=\<filesize,or memory size\>,)
+          
+          [default: auto=filesize]
+
+      --virtio-9p <tag,root_path>
+          add a virtio_9p device (e.g. myfs,C:\)
+
+      --virtio-9p-debug
+          output debug info from the 9p server
+
+      --virtio-fs <tag,root_path,[options]>
+          add a virtio_fs device (e.g. myfs,C:\,uid=1000,gid=2000)
+
+      --virtio-fs-shmem <tag,root_path>
+          add a virtio_fs device for sharing memory (e.g. myfs,\SectionDirectoryPath)
+
+      --virtio-fs-bus <BUS>
+          add a virtio_fs device under either the PCI or MMIO bus, or whatever the hypervisor supports (pci | mmio | auto)
+          
+          [default: auto]
+          [possible values: auto, mmio, pci, vpci]
+
+      --virtio-pmem <PATH>
+          virtio PMEM device
+
+      --virtio-net <VIRTIO_NET>
+          expose a virtio network with the given backend (dio | vmnic | tap | none)
+          
+          Prefix with `uh:` to add this NIC via Mana emulation through Underhill, or `vtl2:` to assign this NIC to VTL2.
+
+      --log-file <PATH>
+          send log output from the worker process to a file instead of stderr. the file will be overwritten
+
+      --ttrpc <SOCKETPATH>
+          run as a ttrpc server on the specified Unix socket
+
+      --grpc <SOCKETPATH>
+          run as a grpc server on the specified Unix socket
+
+      --single-process
+          do not launch child processes
+
+      --device <PATH>
+          device to assign (can be passed multiple times)
+
+      --disable-frontpage
+          instead of showing the frontpage the VM will shutdown instead
+
+      --tpm
+          add a vtpm device
+
+      --vmbus-redirect
+          redirect the VTL 0 vmbus control plane to a proxy in VTL 2
+
+      --vmbus-max-version <VMBUS_MAX_VERSION>
+          limit the maximum protocol version allowed by vmbus; used for testing purposes
+
+      --vmgs <VMGS>
+          
+          e.g: --vmgs memdiff:file:/path/to/file.vmgs
+          
+          syntax: <path> | kind:<arg>[,flag]
+          
+          valid disk kinds:
+              `mem:<len>`                     memory backed disk
+                  <len>: length of ramdisk, e.g.: `1G` or `VMGS_DEFAULT`
+              `memdiff:<disk>[;create=<len>]` memory backed diff disk
+                  <disk>: lower disk, e.g.: `file:base.img`
+              `file:<path>`                   file-backed disk
+                  <path>: path to file
+          
+          flags:
+              `fmt`                           reprovision the VMGS before boot
+              `fmt-on-fail`                   reprovision the VMGS before boot if it is corrupted
+          
+
+      --vga-firmware <FILE>
+          VGA firmware file
+
+      --secure-boot
+          enable secure boot
+
+      --secure-boot-template <SECURE_BOOT_TEMPLATE>
+          use secure boot template
+          
+          [possible values: windows, uefi-ca]
+
+      --custom-uefi-json <PATH>
+          custom uefi nvram json file
+
+      --gdb <PORT>
+          enable in-hypervisor gdb debugger
+
+      --mana <MANA>
+          enable emulated MANA devices with the given network backend (see --net)
+
+      --hypervisor <HYPERVISOR>
+          use a specific hypervisor interface
+
+      --custom-dsdt <FILE>
+          (dev utility) boot linux using a custom (raw) DSDT table.
+          
+          This is a _very_ niche utility, and it's unlikely you'll need to use it.
+          
+          e.g: this flag helped bring up certain Hyper-V Generation 1 legacy devices without needing to port the associated ACPI code into HvLite's DSDT builder.
+
+      --ide <FILE>
+          
+          e.g: --ide memdiff:file:/path/to/disk.vhd
+          
+          syntax: <path> | kind:<arg>[,flag,opt=arg,...]
+          
+          valid disk kinds:
+              `mem:<len>`                    memory backed disk
+                  <len>: length of ramdisk, e.g.: `1G`
+              `memdiff:<disk>`               memory backed diff disk
+                  <disk>: lower disk, e.g.: `file:base.img`
+              `file:<path>`                  file-backed disk
+                  <path>: path to file
+          
+          flags:
+              `ro`                           open disk as read-only
+              `s`                            attach drive to secondary ide channel
+              `dvd`                          specifies that device is cd/dvd and it is read_only
+          
+
+      --floppy <FILE>
+          
+          e.g: --floppy memdiff:/path/to/disk.vfd,ro
+          
+          syntax: <path> | kind:<arg>[,flag,opt=arg,...]
+          
+          valid disk kinds:
+              `mem:<len>`                    memory backed disk
+                  <len>: length of ramdisk, e.g.: `1G`
+              `memdiff:<disk>`               memory backed diff disk
+                  <disk>: lower disk, e.g.: `file:base.img`
+              `file:<path>`                  file-backed disk
+                  <path>: path to file
+          
+          flags:
+              `ro`                           open disk as read-only
+          
+
+      --guest-watchdog
+          enable guest watchdog device
+
+      --openhcl-dump-path <OPENHCL_DUMP_PATH>
+          enable OpenHCL's guest crash dump device, targeting the specified path
+
+      --halt-on-reset
+          halt the VM when the guest requests a reset, instead of resetting it
+
+      --write-saved-state-proto <WRITE_SAVED_STATE_PROTO>
+          write saved state .proto files to the specified path
+
+      --imc <IMC>
+          specify the IMC hive file for booting Windows
+
+      --mcr
+          Expose MCR device
+
+      --battery
+          expose a battery device
+
+      --uefi-console-mode <UEFI_CONSOLE_MODE>
+          set the uefi console mode
+          
+          [possible values: default, com1, com2, none]
+
+      --default-boot-always-attempt
+          Perform a default boot even if boot entries exist and fail
+
+  -h, --help
+          Print help (see a summary with '-h')
