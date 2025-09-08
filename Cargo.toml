@@ -557,6 +557,8 @@ codegen-units = 1
 lto = 'fat'
 
 [profile.dev]
+debug = 2 
+strip = 'none'
 panic = 'abort'
 
 # Used for dev tooling that benefits from some CPU optimizations, but that still
@@ -581,6 +583,7 @@ panic = 'abort'
 # unimplemented symbols.
 opt-level = 1
 lto = 'thin'
+debug = true
 
 [profile.boot-release]
 inherits = 'release'

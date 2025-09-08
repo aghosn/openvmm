@@ -1414,6 +1414,8 @@ impl virt::Processor for MshvProcessor<'_> {
             vpinner.needs_yield.maybe_yield().await;
             stop.check()?;
 
+            tracing::info!("[AGHOSN] run_vp virt_mshv");
+
             match vcpufd.run() {
                 Ok(exit) => match HvMessageType(exit.header.message_type) {
                     HvMessageType::HvMessageTypeUnrecoverableException => {

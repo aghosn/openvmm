@@ -238,6 +238,7 @@ impl VirtioDevice for Device {
     fn write_registers_u32(&mut self, _offset: u16, _val: u32) {}
 
     fn enable(&mut self, resources: Resources) {
+        tracing::info!("[AGHOSN] Enabling virtio net apparently.");
         let mut queue_resources: Vec<_> = resources.queues.into_iter().collect();
         let mut workers = Vec::with_capacity(queue_resources.len() / 2);
         while queue_resources.len() > 1 {
@@ -396,6 +397,7 @@ struct ActiveState {
 
 impl ActiveState {
     fn new(mem: GuestMemory, rx_queue_size: u16, tx_queue_size: u16) -> Self {
+        tracing::info!("[AGHOSN] ActivateState.");
         Self {
             pending_tx_packets: (0..tx_queue_size).map(|_| None).collect(),
             pending_rx_packets: VirtioWorkPool::new(mem, rx_queue_size),
@@ -431,6 +433,7 @@ impl NicBuilder {
         // TODO: Implement VIRTIO_NET_F_MQ and VIRTIO_NET_F_RSS logic based on mulitqueue support.
         // let multiqueue = endpoint.multiqueue_support();
         // let max_queues = self.max_queues.clamp(1, multiqueue.max_queues.min(VIRTIO_NET_MAX_QUEUES));
+        tracing::info!("[AGHOSN] NicBuilder is doing a build.");
         let max_queues = 1;
 
         let driver = driver_source.simple();
@@ -699,6 +702,7 @@ impl AsyncRun<Worker> for NetQueue {
         stop: &mut StopTask<'_>,
         worker: &mut Worker,
     ) -> Result<(), task_control::Cancelled> {
+        tracing::info!("[AGHOSN] asynrun worker NetQueue");
         match worker.process(stop, self).await {
             Ok(()) => {}
             Err(WorkerError::Cancelled(cancelled)) => return Err(cancelled),
@@ -770,6 +774,7 @@ impl Worker {
         queue: &mut NetQueue,
     ) -> Result<(), WorkerError> {
         let epqueue_state = queue.state.as_mut().unwrap();
+        tracing::info!("[AGHOSN] main_loop in virtio_net src lib.rs");
 
         loop {
             let did_some_work = self.process_endpoint_rx(epqueue_state.queue.as_mut())?

@@ -118,6 +118,7 @@ impl InspectMut for SocketSerialBackend {
 
 impl SocketSerialBackend {
     pub fn new(driver: Box<dyn Driver>, config: OpenSocketSerialConfig) -> io::Result<Self> {
+        tracing::info!("[AGHOSN] SocketSerialBackend is not great.");
         let current = config
             .current
             .map(|s| PolledSocket::new(&driver, s))

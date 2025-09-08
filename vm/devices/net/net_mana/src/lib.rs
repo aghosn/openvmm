@@ -883,6 +883,7 @@ impl<T: DeviceBacking + Send> Queue for ManaQueue<T> {
     fn rx_poll(&mut self, packets: &mut [RxId]) -> anyhow::Result<usize> {
         let mut i = 0;
         let mut commit = false;
+        tracing::info!("[AGHOSN] networking rx poll mana");
         while i < packets.len() {
             if let Some(cqe) = self.rx_cq.pop() {
                 let rx = self.posted_rx.pop_front().unwrap();
@@ -989,6 +990,7 @@ impl<T: DeviceBacking + Send> Queue for ManaQueue<T> {
 
     fn tx_poll(&mut self, done: &mut [TxId]) -> Result<usize, TxError> {
         let mut i = 0;
+        tracing::info!("[AGHOSN] networking tx poll mana");
         while i < done.len() {
             let id = if let Some(cqe) = self.tx_cq.pop() {
                 let tx_oob = ManaTxCompOob::read_from_prefix(&cqe.data[..]).unwrap().0; // TODO: zerocopy: use-rest-of-range (https://github.com/microsoft/openvmm/issues/759)
@@ -1054,7 +1056,7 @@ impl<T: DeviceBacking> ManaQueue<T> {
         let TxSegmentType::Head(meta) = &head.ty else {
             unreachable!()
         };
-
+        
         let mut oob = ManaTxOob::new_zeroed();
         oob.s_oob.set_vcq_num(self.tx_cq.id());
         oob.s_oob

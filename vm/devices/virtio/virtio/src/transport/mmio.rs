@@ -85,6 +85,7 @@ impl VirtioMmioDevice {
         mmio_gpa: u64,
         mmio_len: u64,
     ) -> Self {
+        tracing::info!("[AGHOSN] virtio mmio device new.");
         let traits = device.traits();
         let queues = (0..traits.max_queues)
             .map(|_| QueueParams {

@@ -128,7 +128,9 @@ where
         vtl_guest_memory: &[Option<GuestMemory>; NUM_VTLS],
         stop: StopVp<'_>,
     ) -> Result<StopReason, HaltReason> {
+        tracing::info!("[AGHOSN] Inside run_vp in BoundVp.");
         let r = self.vp.run_vp(stop, self.io).await;
+        tracing::info!("[AGHOSN] returned from vp.run_vp {:?}", r);
         // Convert the inner error type to a generic one.
         match r.unwrap_err() {
             VpHaltReason::Stop(stop) => Ok(StopReason::OnRequest(stop)),
@@ -1100,6 +1102,7 @@ impl VpRunner {
         io: &impl CpuIo,
     ) -> Result<(), RunCancelled> {
         let vp_index = self.inner.vp;
+        tracing::info!("[AGHOSN] VpRunner async run idx {:?}.", vp_index);
         self.run_inner(&mut BoundVp { vp, io, vp_index }).await
     }
 
@@ -1131,6 +1134,7 @@ impl VpRunner {
                     None => return Ok(()),
                 }
             }
+            tracing::info!("[AGHOSN] run_inner on {:?} done waiting", self.inner.vp);
 
             // If the VPs are already halted, wait for the next request without
             // running the VP even once.
@@ -1153,6 +1157,8 @@ impl VpRunner {
 
                 let stop = StopVpSource::new();
 
+                // TODO AGHOSN Maybe that's something else.
+                // TODO AGHOSN this is async so it returns directly.
                 let run_vp = vp
                     .run_vp(&self.inner.inner.vtl_guest_memory, stop.checker())
                     .into_stream()
@@ -1181,16 +1187,20 @@ impl VpRunner {
                     futures::stream::PollNext::Left
                 }));
 
+
                 // Wait for stop or a VP failure.
                 while let Some(event) = s.next().await {
+                    tracing::info!("[AGHOSN] BOOBOO received an event");
                     match event {
                         Event::Vp(VpEvent::Start) => panic!("vp already started"),
                         Event::Vp(VpEvent::Stop(send)) => {
+                            tracing::info!("[AGHOSN] vp event stop");
                             tracing::debug!("stopping VP");
                             stop.stop();
                             stop_complete = Some(send);
                         }
                         Event::Vp(VpEvent::State(event)) => {
+                            tracing::info!("[AGHOSN] vp state event.");
                             // Stop the VP so that we can drop the run_vp future
                             // before manipulating state.
                             //
@@ -1202,19 +1212,20 @@ impl VpRunner {
                             state_requests.push(event);
                         }
                         Event::Halt => {
-                            tracing::debug!("stopping VP due to halt");
+                            tracing::info!("stopping VP due to halt");
                             stop.stop();
                         }
                         Event::Cancel => {
-                            tracing::debug!("run cancelled externally");
+                            tracing::info!("run cancelled externally");
                             stop.stop();
                             cancelled_by_user = Some(true);
                         }
                         Event::Teardown => {
-                            tracing::debug!("tearing down");
+                            tracing::info!("tearing down");
                             stop.stop();
                         }
                         Event::VpStopped(r) => {
+                            tracing::info!("[AGHOSN] vp stopped ?");
                             match r {
                                 Ok(StopReason::OnRequest(VpStopped { .. })) => {
                                     assert!(stop.is_stopping(), "vp stopped without a reason");

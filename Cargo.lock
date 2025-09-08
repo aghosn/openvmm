@@ -4491,6 +4491,7 @@ dependencies = [
  "anyhow",
  "arrayvec",
  "async-trait",
+ "backtrace",
  "bitfield-struct 0.10.1",
  "event-listener",
  "futures",
@@ -4505,6 +4506,7 @@ dependencies = [
  "net_backend",
  "net_backend_resources",
  "netvsp_resources",
+ "nix 0.30.1",
  "open_enum",
  "pal_async",
  "parking_lot",
@@ -4570,6 +4572,18 @@ name = "nix"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71e2746dc3a24dd78b3cfcb7be93368c6de9963d30f43a6a73998a9cf4b17b46"
+dependencies = [
+ "bitflags 2.9.0",
+ "cfg-if",
+ "cfg_aliases",
+ "libc",
+]
+
+[[package]]
+name = "nix"
+version = "0.30.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74523f3a35e05aba87a1d978330aef40f67b0304ac79c1c00b294c9830543db6"
 dependencies = [
  "bitflags 2.9.0",
  "cfg-if",
@@ -7524,6 +7538,7 @@ dependencies = [
  "acpi_spec",
  "anyhow",
  "async-trait",
+ "backtrace",
  "blocking",
  "bootloader_fdt_parser",
  "build_info",
@@ -7588,6 +7603,7 @@ dependencies = [
  "net_mana",
  "net_packet_capture",
  "netvsp",
+ "nix 0.30.1",
  "nvme_driver",
  "nvme_resources",
  "openhcl_attestation_protocol",

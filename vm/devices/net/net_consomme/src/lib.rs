@@ -39,6 +39,7 @@ pub struct ConsommeEndpoint {
 
 impl ConsommeEndpoint {
     pub fn new() -> Result<Self, consomme::Error> {
+        tracing::info!("[AGHOSN] calling new consommeEndpoint");
         Ok(Self {
             consomme: Arc::new(Mutex::new(Some(Consomme::new()?))),
         })

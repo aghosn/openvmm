@@ -1660,6 +1660,7 @@ impl<'a> UhProtoPartition<'a> {
                 // TODO: determine CPU index, which in theory could be different
                 // from the VP index, though this hasn't happened yet.
                 let cpu_index = vp_info.base.vp_index.index();
+                tracing::info!("[AGHOSN] creating vps with cpu_index {}", cpu_index);
                 UhVpInner::new(cpu_index, vp_info)
             })
             .collect();

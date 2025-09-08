@@ -202,9 +202,13 @@ async fn do_main(driver: DefaultDriver, mut tracing: TracingBackend) -> anyhow::
             .with_context(|| format!("failed to write pid to {}", pid_path.display()))?;
     }
 
+    tracing::info!("[AGHOSN] tracing enabled, we're in do_main.");
+
     let mesh = Mesh::new("underhill".to_string()).context("failed to create mesh")?;
 
     let r = run_control(driver, &mesh, opt, &mut tracing).await;
+
+    tracing::info!("[AGHOSN] after run control.");
     if let Err(err) = &r {
         tracing::error!(
             CVM_ALLOWED,
@@ -222,6 +226,8 @@ async fn do_main(driver: DefaultDriver, mut tracing: TracingBackend) -> anyhow::
         })
         .await
         .ok();
+
+    tracing::info!("[AGHOSN] end of do_main.");
 
     r
 }

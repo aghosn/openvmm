@@ -130,6 +130,7 @@ impl GdmaDevice {
         vports: Vec<VportConfig>,
         mmio_registration: &mut dyn RegisterMmioIntercept,
     ) -> Self {
+        tracing::info!("[AGHOSN] GdmaDebice new.");
         let (msix, msix_capability) = MsixEmulator::new(4, 64, register_msi);
 
         let hardware_ids = HardwareIds {

@@ -105,6 +105,7 @@ impl VirtioPciDevice {
         mmio_registration: &mut dyn RegisterMmioIntercept,
         shared_mem_mapper: Option<&dyn MemoryMapper>,
     ) -> io::Result<Self> {
+        tracing::info!("[AGHOSN] virtio pci device new.");
         let traits = device.traits();
         let queues = (0..traits.max_queues)
             .map(|_| QueueParams {

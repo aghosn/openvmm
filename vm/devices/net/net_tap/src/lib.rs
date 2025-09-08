@@ -47,6 +47,7 @@ pub struct TapEndpoint {
 
 impl TapEndpoint {
     pub fn new(name: &str) -> Result<Self, Error> {
+        tracing::info!("[AGHOSN] new TapEndpoint.");
         let tap = tap::Tap::new(name).map_err(Error::TapInterface)?;
         Ok(Self {
             tap: Arc::new(Mutex::new(Some(tap))),

@@ -197,6 +197,7 @@ impl BackingPrivate for HypervisorBackedX86 {
         dev: &impl CpuIo,
         stop: &mut StopVp<'_>,
     ) -> Result<(), VpHaltReason<UhRunVpError>> {
+        //tracing::info!("[AGHOSN] run_vp x64 in processor mshv");
         if this.backing.deliverability_notifications
             != this.backing.next_deliverability_notifications
         {
@@ -233,6 +234,8 @@ impl BackingPrivate for HypervisorBackedX86 {
             }
             .map_err(|e| VpHaltReason::Hypervisor(UhRunVpError::Sidecar(e)))?
         } else {
+            //TODO AGHOSN this is the one BUT HOW MANY FUCKING LAYERS OF INDIRECTION
+            //tracing::info!("[AGHOSN] this.runner.run run_vp");
             this.unlock_tlb_lock(Vtl::Vtl2);
             this.runner
                 .run()
@@ -241,7 +244,14 @@ impl BackingPrivate for HypervisorBackedX86 {
 
         if intercepted {
             let message_type = this.runner.exit_message().header.typ;
-
+            if message_type != HvMessageType::HvMessageTypeX64IoPortIntercept
+             && message_type != HvMessageType::HvMessageTypeX64CpuidIntercept {
+                tracing::info!("[AGHOSN] message type from HV is {:?}, idx: {:?}",
+                    message_type, this.inner.vp_index());
+            } /*else if this.inner.vp_index().index() != 0 {
+                tracing::info!("[AGHOSN] is somebody else running on this core or what? {:?}",
+                    this.inner.vp_index());
+            }*/
             let mut intercept_handler =
                 InterceptHandler::new(this).map_err(VpHaltReason::InvalidVmState)?;
 
@@ -638,6 +648,8 @@ impl<'a, 'b> InterceptHandler<'a, 'b> {
             .as_message::<hvdef::HvX64MemoryInterceptMessage>();
 
         tracing::trace!(msg = %format_args!("{:x?}", message), "mmio");
+        tracing::info!("[AGHOSN] mmio on core {:?}", 
+            self.vp.vp_index());
 
         let interruption_pending = message.header.execution_state.interruption_pending();
 

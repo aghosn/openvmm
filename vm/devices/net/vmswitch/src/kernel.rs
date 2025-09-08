@@ -33,6 +33,8 @@ impl KernelVmNic {
         let full_nic_name = format!("{}--{}", vm_id, nic_name);
         let path = format!(r#"\\.\VmSwitch\{}"#, &full_nic_name);
 
+        tracing::info!("[AGHOSN] kernel vm nic!");
+
         // BUGBUG: Generate a random partition ID since the switch relies on
         // this being unique or the machine will bugcheck. Fix the switch.
         let mut partition_id = [0; 8];

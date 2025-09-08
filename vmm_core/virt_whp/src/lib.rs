@@ -1517,6 +1517,7 @@ impl<'p> virt::Processor for WhpProcessor<'p> {
         stop: StopVp<'_>,
         dev: &impl CpuIo,
     ) -> Result<Infallible, VpHaltReason<WhpRunVpError>> {
+        tracing::info!("[AGHOSN] run_vp from virt_whp lib.rs");
         self.run_vp(stop, dev).await
     }
 

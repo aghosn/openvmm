@@ -2007,6 +2007,7 @@ impl<'a, T: Backing<'a>> ProcessorRunner<'a, T> {
         // SAFETY: no safety requirements for this ioctl.
         let r = unsafe { hcl_return_to_lower_vtl(self.hcl.mshv_vtl.file.as_raw_fd()) };
 
+        //TODO: AGHOSN here is the hcl_return_to_lower_vtl thing
         let has_intercept = match r {
             Ok(_) => true,
             Err(nix::errno::Errno::EINTR) => false,

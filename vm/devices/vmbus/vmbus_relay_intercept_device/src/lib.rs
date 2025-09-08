@@ -565,6 +565,7 @@ impl<T: SimpleVmbusClientDeviceAsync> SimpleVmbusClientDeviceTask<T> {
             else {
                 break;
             };
+
             match r {
                 Event::Revoke(()) => {
                     self.handle_revoke(state).await;

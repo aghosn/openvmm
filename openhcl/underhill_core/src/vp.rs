@@ -11,6 +11,7 @@ use pal_async::task::SpawnLocal;
 use pal_uring::IdleControl;
 use std::sync::LazyLock;
 use underhill_threadpool::AffinitizedThreadpool;
+use backtrace::Backtrace;
 
 pub(crate) async fn spawn_vps(
     tp: &AffinitizedThreadpool,
@@ -46,6 +47,37 @@ struct VpSpawner {
     runner: vmm_core::partition_unit::VpRunner,
     isolation: virt::IsolationType,
     tp: AffinitizedThreadpool,
+}
+
+fn log_backtrace() {
+    let bt = Backtrace::new();
+    
+    tracing::info!("[AGHOSN] inside log_backtrace with bt frames {}", bt.frames().len());
+    {
+        #[cfg(target_os = "linux")]
+        let tid = nix::unistd::gettid();
+        #[cfg(not(target_os = "linux"))]
+        let tid = 0;
+        let binding = std::thread::current();
+        tracing::info!("log_backtrace thread name: {}, pid: {:?}, tid: {}",
+        binding.name().unwrap_or("<unamed>"),  /*std::thread::current().id()*/
+        std::process::id(),
+        tid);
+    }
+
+    for frame in bt.frames() {
+        if frame.symbols().is_empty() {
+            tracing::info!("ip={:p}, <no symbols>", frame.ip());
+        } else {
+            for symbol in frame.symbols() {
+                let name = symbol.name()
+                    .map(|n| n.to_string())
+                    .unwrap_or("<unknown>".to_string());
+
+                tracing::info!("ip={:p}, symbol={}", frame.ip(), name);
+            }
+        }
+    }
 }
 
 impl VpSpawner {
@@ -128,6 +160,19 @@ impl VpSpawner {
     ) -> Option<vmcore::save_restore::SavedStateBlob> {
         let r = match self.isolation {
             virt::IsolationType::None | virt::IsolationType::Vbs => {
+
+            tracing::info!("[AGHOSN] running vp from underhill core vp.rs {}",
+                self.cpu);
+            {
+                let binding = std::thread::current();
+                tracing::info!("Underhill thread name: {},  tid: {:?}, pid: {:?}",
+                binding.name().unwrap_or("<unamed>"),  /*std::thread::current().id()*/
+                nix::unistd::gettid().as_raw(),
+                std::process::id());
+                log_backtrace();
+            }
+            //std::env::set_var("RUST_BACKTRACE", "1");
+            //tracing::info!("[AGHOSN] vp running trace: {}", std::backtrace::Backtrace::capture());
                 self.run_backed_vp::<virt_mshv_vtl::HypervisorBacked>(saved_state, control)
                     .await
             }
@@ -177,6 +222,7 @@ impl VpSpawner {
     }
 
     async fn spawn_sidecar_vp(mut self) {
+        tracing::info!("[AGHOSN] is there actually a sidecar?");
         // Initially, run any sidecar VP handling on the base CPU, which is
         // guaranteed to be online.
         let base_cpu = self.vp.sidecar_base_cpu().expect("missing sidecar");

@@ -112,6 +112,7 @@ use zerocopy::FromZeros;
 use zerocopy::Immutable;
 use zerocopy::IntoBytes;
 use zerocopy::KnownLayout;
+use backtrace::Backtrace;
 
 // The minimum ring space required to handle a control message. Most control messages only need to send a completion
 // packet, but also need room for an additional SEND_VF_ASSOCIATION message.
@@ -1016,6 +1017,10 @@ impl NicBuilder {
     ) -> Nic {
         let multiqueue = endpoint.multiqueue_support();
 
+        tracing::info!("[AGHOSN] NIC build {}.", mac_address);
+        let bt = std::backtrace::Backtrace::capture();
+        tracing::info!("[AGHOSN] bt to Nic build {}", bt);
+
         let max_queues = self.max_queues.clamp(
             1,
             multiqueue.max_queues.min(NETVSP_MAX_SUBCHANNELS_PER_VNIC),
@@ -1336,6 +1341,7 @@ impl Nic {
     ) -> Result<(), OpenError> {
         let coordinator = self.coordinator.state_mut().unwrap();
 
+        tracing::info!("[AGHOSN] Nic insert worker.");
         // Retarget the driver now that the channel is open.
         let driver = coordinator.workers[channel_idx as usize]
             .task()
@@ -1398,6 +1404,7 @@ impl Nic {
         #[expect(clippy::disallowed_methods)] // TODO
         let (send, recv) = mpsc::channel(1);
         self.coordinator_send = Some(send);
+        tracing::info!("[AGHOSN] insert_coordinator in Nic.");
         self.coordinator.insert(
             &self.adapter.driver,
             format!("netvsp-{}-coordinator", self.instance_id),
@@ -4345,12 +4352,46 @@ impl Coordinator {
     }
 }
 
+fn log_backtrace() {
+    let bt = Backtrace::new();
+    
+    tracing::info!("[AGHOSN] vp log_backtrace with bt frames {}", bt.frames().len());
+    {
+        #[cfg(target_os = "linux")]
+        let tid = nix::unistd::gettid();
+        #[cfg(not(target_os = "linux"))]
+        let tid = 0;
+        let binding = std::thread::current();
+        tracing::info!("log_backtrace thread name: {}, pid: {:?}, tid: {}",
+        binding.name().unwrap_or("<unamed>"),  /*std::thread::current().id()*/
+        std::process::id(),
+        tid);
+    }
+
+    for frame in bt.frames() {
+        if frame.symbols().is_empty() {
+            tracing::info!("ip={:p}, <no symbols>", frame.ip());
+        } else {
+            for symbol in frame.symbols() {
+                let name = symbol.name()
+                    .map(|n| n.to_string())
+                    .unwrap_or("<unknown>".to_string());
+
+                tracing::info!("ip={:p}, symbol={}", frame.ip(), name);
+            }
+        }
+    }
+}
+
 impl<T: RingMem + 'static + Sync> AsyncRun<Worker<T>> for NetQueue {
     async fn run(
         &mut self,
         stop: &mut StopTask<'_>,
         worker: &mut Worker<T>,
     ) -> Result<(), task_control::Cancelled> {
+        std::env::set_var("RUST_BACKTRACE", "full");
+        tracing::info!("[AGHOSN] inside  Netqueue vsp run.");
+        log_backtrace();
         match worker.process(stop, self).await {
             Ok(()) | Err(WorkerError::BufferRevoked) => {}
             Err(WorkerError::Cancelled(cancelled)) => return Err(cancelled),
@@ -4736,6 +4777,8 @@ impl<T: 'static + RingMem> NetChannel<T> {
             send.capacity() - limit
         };
 
+        tracing::info!("[AGHOSN] in the main loop for netvsp.");
+
         // Handle any guest state changes since last run.
         if let Some(primary) = state.primary.as_mut() {
             if primary.requested_num_queues > 1 && !primary.tx_spread_sent {
@@ -4817,6 +4860,8 @@ impl<T: 'static + RingMem> NetChannel<T> {
             // since this will cause us to spend time dropping packets and
             // reprogramming receive buffers. It's more efficient to let the
             // backend drop packets.
+
+            tracing::info!("[AGHOSN] Networking loop in netvsp?");
             let ring_full = {
                 let (_, mut send) = self.queue.split();
                 !send.can_write(ring_spare_capacity)?
@@ -4833,6 +4878,8 @@ impl<T: 'static + RingMem> NetChannel<T> {
             if !did_some_work {
                 state.stats.spurious_wakes.increment();
             }
+
+            //tracing::info!("[AGHOSN] did some work.");
 
             // Process any outstanding control messages before sleeping in case
             // there are now suballocations available for use.

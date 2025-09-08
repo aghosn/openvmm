@@ -254,6 +254,8 @@ impl<'a> WhpProcessor<'a> {
         self.reset_if_requested()
             .map_err(VpHaltReason::Hypervisor)?;
 
+        tracing::info!("[AGHOSN] run_vp from vp.rs");
+
         tracing::trace!(vtl = ?self.state.active_vtl, "current vtl");
         let mut last_waker = None;
         loop {

@@ -314,6 +314,7 @@ impl<T: Processor> Processor for WrappedVp<'_, T> {
         stop: StopVp<'_>,
         dev: &impl CpuIo,
     ) -> Result<Infallible, VpHaltReason<Self::RunVpError>> {
+        tracing::info!("[AGHOSN] run_vp partition.rs in hvlite core");
         self.0.run_vp(stop, dev).await
     }
 

@@ -82,6 +82,8 @@ impl DioNic {
         let full_nic_name = format!("{}--{}", vm_id, nic_name);
         let path = format!(r#"\\.\VmSwitch\{}"#, &full_nic_name);
 
+        tracing::info!("[AGHOSN] DIO vm nic with name {} and path {}!", full_nic_name, path);
+
         let handle = unsafe {
             let mut raw_handle = ptr::null_mut();
             vmsif::chk(vmsif::VmsIfNicCreateEmulated(
@@ -193,6 +195,7 @@ impl DioQueue {
 
     /// Initiates a read to vmswitch.
     fn start_read(&mut self, buf_index: usize) {
+        tracing::info!("[AGHOSN] start read from dio");
         unsafe {
             let buf = &mut self.state.in_buf[buf_index];
             ReadFile(
@@ -286,6 +289,7 @@ impl AsyncRead for DioQueue {
         cx: &mut Context<'_>,
         buf: &mut [u8],
     ) -> Poll<io::Result<usize>> {
+        tracing::info!("[AGHOSN] inside dio async read poll_read");
         let this = self.get_mut();
         loop {
             std::task::ready!(this.poll_read_ready(cx));

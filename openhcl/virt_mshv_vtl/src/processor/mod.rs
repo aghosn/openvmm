@@ -771,6 +771,7 @@ impl<'p, T: Backing> Processor for UhProcessor<'p, T> {
         mut stop: StopVp<'_>,
         dev: &impl CpuIo,
     ) -> Result<Infallible, VpHaltReason<UhRunVpError>> {
+        tracing::info!("[AGHOSN] run_vp inside the fucking openhcl virt mshv vtl");
         if self.runner.is_sidecar() {
             if self.force_exit_sidecar && !self.signaled_sidecar_exit {
                 self.inner
@@ -803,6 +804,7 @@ impl<'p, T: Backing> Processor for UhProcessor<'p, T> {
         let mut first_scan_irr = true;
 
         loop {
+            // TODO AGHOSN this is the loop
             // Process VP activity and wait for the VP to be ready.
             poll_fn(|cx| {
                 loop {
@@ -867,6 +869,7 @@ impl<'p, T: Backing> Processor for UhProcessor<'p, T> {
             // this CPU during memory protection updates.
             minircu::global().quiesce();
 
+            //TODO AGHOSN this is the call. 
             T::run_vp(self, dev, &mut stop).await?;
             self.kernel_returns += 1;
         }

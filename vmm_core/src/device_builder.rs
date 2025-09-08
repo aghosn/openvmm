@@ -38,6 +38,7 @@ pub async fn build_vpci_device(
     )>,
 ) -> anyhow::Result<()> {
     let device_name = format!("{}:vpci-{instance_id}", resource.id());
+    tracing::info!("[AGHOSN] build_vpci_device.");
 
     let mut msi_set = MsiInterruptSet::new();
 

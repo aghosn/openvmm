@@ -172,6 +172,9 @@ impl ConsommeState {
     ///     gateway: 10.0.0.1 with MAC address 52-55-10-0-0-1
     ///     no DNS resolvers
     pub fn new() -> Result<Self, Error> {
+        std::env::set_var("RUST_BACKTRACE", "1");
+        tracing::info!("[AGHOSN] the trace is here: {}", std::backtrace::Backtrace::capture());
+        tracing::info!("\n\n\n[AGHOSN] Consomme state new.\n\n\n");
         let nameservers = dns::nameservers()?;
         Ok(Self {
             gateway_ip: Ipv4Address::new(10, 0, 0, 1),
@@ -504,7 +507,10 @@ impl<T: Client> Access<'_, T> {
         match frame.ethertype {
             EthernetProtocol::Ipv4 => self.handle_ipv4(&frame, frame_packet.payload(), checksum)?,
             EthernetProtocol::Arp => self.handle_arp(&frame, frame_packet.payload())?,
-            _ => return Err(DropReason::UnsupportedEthertype(frame.ethertype)),
+            _ => {
+                tracing::info!("[AGHOSN] unknown ethernet type {}", frame.ethertype);
+                return Err(DropReason::UnsupportedEthertype(frame.ethertype));
+            }
         }
         Ok(())
     }
@@ -545,6 +551,11 @@ impl<T: Client> Access<'_, T> {
             src_addr: ipv4.src_addr(),
             dst_addr: ipv4.dst_addr(),
         };
+        if ipv4.protocol() == IpProtocol::Tcp {
+            tracing::info!("[AGHOSN] ipv4 tcp protocol dest: {}", addresses.dst_addr);
+            std::env::set_var("RUST_BACKTRACE", "1");
+            tracing::info!("[AGHOSN] network packet trace: {}", std::backtrace::Backtrace::capture());
+        }
 
         let inner = &payload[ipv4.header_len().into()..total_len];
 

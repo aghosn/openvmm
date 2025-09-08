@@ -67,6 +67,7 @@ async fn create_mana_device(
     max_sub_channels: u16,
     dma_client: Arc<dyn DmaClient>,
 ) -> anyhow::Result<ManaDevice<VfioDevice>> {
+    tracing::info!("[AGHOSN] Creating mana device in netvsp");
     // Disable FLR on vfio attach/detach; this allows faster system
     // startup/shutdown with the caveat that the device needs to be properly
     // sent through the shutdown path during servicing operations, as that is
@@ -220,6 +221,7 @@ impl HclNetworkVFManagerWorker {
         dma_mode: GuestDmaMode,
         dma_client: Arc<dyn DmaClient>,
     ) -> (Self, mesh::Sender<HclNetworkVfManagerMessage>) {
+        tracing::info!("[AGHOSN] HclNetworkVFManagerWorker new called.");
         let (tx_to_worker, worker_rx) = mesh::channel();
         let vtl0_bus_control = if save_state.hidden_vtl0.lock().unwrap_or(false) {
             vtl0_bus_control
@@ -470,7 +472,8 @@ impl HclNetworkVFManagerWorker {
             ManaDeviceRemoved,
             ExitWorker,
         }
-
+        
+        tracing::info!("[AGHOSN] inside the netvsp run.");
         let mut vtl2_device_present = true;
         loop {
             let next_work_item = {
@@ -773,6 +776,7 @@ struct HclNetworkVfManagerUeventHandler {
 
 impl HclNetworkVfManagerUeventHandler {
     pub async fn new(uevent_listener: &UeventListener, instance_id: Guid) -> Self {
+        tracing::info!("[AGHOSN] event listener HclNetworkVfManagerUeventHandler.");
         let pci_id = format!("pci{0:04x}:00/{0:04x}:00:00.0", instance_id.data2);
         let device_path = format!("/devices/platform/bus/bus:vmbus/{}/{}", instance_id, pci_id);
         // File system device path is not the same as the uevent path.
@@ -864,6 +868,7 @@ impl HclNetworkVFManager {
         Vec<HclNetworkVFManagerEndpointInfo>,
         RuntimeSavedState,
     )> {
+        tracing::info!("[AGHOSN] HclNetworkVFManger new");
         let device = create_mana_device(
             driver_source,
             &vtl2_pci_id,

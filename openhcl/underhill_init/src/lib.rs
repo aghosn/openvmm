@@ -434,7 +434,7 @@ fn do_main() -> anyhow::Result<()> {
     init_logging();
 
     log::info!(
-        "Initial process: crate_name={}, crate_revision={}, crate_branch={}",
+        "[AGHOSN] Initial process: crate_name={}, crate_revision={}, crate_branch={}",
         env!("CARGO_PKG_NAME"),
         option_env!("VERGEN_GIT_SHA").unwrap_or("UNKNOWN_REVISION"),
         option_env!("VERGEN_GIT_BRANCH").unwrap_or("UNKNOWN_BRANCH"),
@@ -452,6 +452,12 @@ fn do_main() -> anyhow::Result<()> {
         "/proc/sys/vm/max_map_count",
     ];
     let options = Options::parse();
+        unsafe {
+            //TODO: AGHOSN redefining environment variables.
+            std::env::set_var("RUST_BACKTRACE", "full");
+            //std::env::set_var("OPENHCL_CONFIDENTIAL", "1");
+        };
+    log::info!("[AGHOSN] XX options parsed: {:?}", options);
     let writes = &[
         // The kernel sets the maximum number of threads to a number
         // inferred from the size of RAM: the thread structures must

@@ -350,6 +350,8 @@ impl Worker for UnderhillVmWorker {
             let (get_infra, get_watchdog_task) = construct_get().await?;
             let get_client = get_infra.get_client.clone();
 
+            tracing::info!("[AGHOSN] Underhill worker new.");
+
             let result = Self::new_or_restart(get_infra, params, true, None, driver).await;
 
             if let Err(err) = &result {
@@ -451,6 +453,8 @@ impl UnderhillVmWorker {
         let dps = read_device_platform_settings(&get_client)
             .instrument(tracing::info_span!("init/dps", CVM_ALLOWED))
             .await?;
+
+        tracing::info!("[AGHOSN] new_or_restart dps: {:?}", dps);
 
         // Build the thread pool now that we know the IO ring size to use.
         let threadpool = {
@@ -751,6 +755,7 @@ impl UhVmNetworkSettings {
         dma_client_spawner: DmaClientSpawner,
         is_isolated: bool,
     ) -> anyhow::Result<RuntimeSavedState> {
+        tracing::info!("[AGHOSN] the new_underhill_nic is called");
         let instance_id = nic_config.instance_id;
         let nic_max_sub_channels = nic_config
             .max_sub_channels
@@ -815,6 +820,7 @@ impl UhVmNetworkSettings {
                     .expect("cannot fail to query the guest OS ID")
             };
 
+            tracing::info!("[AGHOSN] Building the nic from underhill worker.");
             let mut nic_builder = netvsp::Nic::builder()
                 .limit_ring_buffer(true)
                 .get_guest_os_id(Box::new(get_guest_os_id))
@@ -896,6 +902,7 @@ impl LoadedVmNetworkSettings for UhVmNetworkSettings {
         dma_client_spawner: DmaClientSpawner,
         is_isolated: bool,
     ) -> anyhow::Result<RuntimeSavedState> {
+        tracing::info!("[AGHOSN] worker creating network in add_network.");
         if self.vf_managers.contains_key(&instance_id) {
             return Err(NetworkSettingsError::VFManagerExists(instance_id).into());
         }
@@ -1190,7 +1197,8 @@ async fn new_underhill_vm(
         debugger_rpc,
         control_send,
     } = params;
-
+    
+    //TODO: AGHOSN figure out where the drivers are actually created.
     if let Ok(kernel_boot_time) = std::env::var("KERNEL_BOOT_TIME") {
         if let Ok(kernel_boot_time_ns) = kernel_boot_time.parse::<u64>() {
             tracing::info!(CVM_ALLOWED, kernel_boot_time_ns, "kernel boot time");
@@ -1225,7 +1233,8 @@ async fn new_underhill_vm(
         bootloader_fdt_parser::IsolationType::Snp => virt::IsolationType::Snp,
         bootloader_fdt_parser::IsolationType::Tdx => virt::IsolationType::Tdx,
     };
-
+    
+    tracing::info!("[AGHOSN] isolation is {:?}", isolation);
     let hardware_isolated = isolation.is_hardware_isolated();
 
     let driver_source = VmTaskDriverSource::new(ThreadpoolBackend::new(tp.clone()));
@@ -1266,6 +1275,7 @@ async fn new_underhill_vm(
             )
             .use_hypercall_for_mmio_access()
         };
+    tracing::info!("[AGHOSN] Use mmio hypercalls? {}", use_mmio_hypercalls);
 
     let boot_info = runtime_params.parsed_openhcl_boot();
 
@@ -1275,6 +1285,8 @@ async fn new_underhill_vm(
     // TODO: retrieve this via the host; this heuristic is temporary.
     // Each MANA queue uses 21 pages.  Max 32 queues from OpenHCL (unless overridden by Vtl2Settings).
     let net_device_dma = 21 * hvdef::HV_PAGE_SIZE * (boot_info.cpus.len() as u64).min(32);
+
+    tracing::info!("[AGHOSN] net_device_dma is {}", net_device_dma);
     // Each NVMe queue uses 130 pages.  While this can be set independently in policy via Vtl2Settings,
     // not expected to scale beyond VP count.  Max 128 queues from container policy.
     let nvme_device_dma = 130 * hvdef::HV_PAGE_SIZE * (boot_info.cpus.len() as u64).min(128);
@@ -1326,6 +1338,7 @@ async fn new_underhill_vm(
         complete_memory_layout,
     } = build_vtl0_memory_layout(vtl0_memory_map, &boot_info.vtl0_mmio, shared_pool_size)?;
 
+    //TODO: AGHOSN this is the parameter that also controls bounce buffering apparently.
     let hide_isolation = isolation.is_isolated() && env_cfg.hide_isolation;
 
     // Determine if x2apic is supported so that the topology matches
@@ -1529,6 +1542,7 @@ async fn new_underhill_vm(
     // shared/private state, so we have no choice but to allow devices to access
     // both.
     let device_memory = if hide_isolation || !isolation.is_hardware_isolated() {
+        tracing::info!("[AGHOSN] device_memory in vtl0.");
         gm.vtl0()
     } else {
         &gm.cvm_memory().unwrap().shared_gm
@@ -1830,6 +1844,7 @@ async fn new_underhill_vm(
         cvm_params,
         vmbus_relay: with_vmbus_relay,
     };
+    tracing::info!("[AGHOSN] Is there a vmbus relay: {}", with_vmbus_relay);
 
     let (partition, vps) = proto_partition
         .build(late_params)
@@ -1845,6 +1860,8 @@ async fn new_underhill_vm(
     // so they don't need as high a QD.
     let default_io_queue_depth = (8 * processor_topology.vp_count()).min(256);
 
+
+    //TODO: AGHOSN maybe this is the bit?
     let mut controllers = InitialControllers::new(
         &uevent_listener,
         &dps,
@@ -1873,6 +1890,9 @@ async fn new_underhill_vm(
     } else {
         tracing::info!(CVM_ALLOWED, "Not Instantiating The MCR Device");
     }
+
+    tracing::info!("[AGHOSN] Let's inspect devices. vpci: {}, mana: {}, vmbus: {}", 
+        controllers.vpci_devices.len(), controllers.mana.len(), controllers.vmbus_devices.len());
 
     let (halt_vps, halt_request_recv) = Halt::new();
     let halt_vps = Arc::new(halt_vps);
@@ -1909,6 +1929,8 @@ async fn new_underhill_vm(
             always_bounce,
         ),
     );
+
+    tracing::info!("[AGHOSN] Always bounce> {}", always_bounce);
 
     let periodic_telemetry_task = tp.spawn(
         "periodic_telemetry_collection",
@@ -2924,6 +2946,7 @@ async fn new_underhill_vm(
         },
     };
     let mut netvsp_state = Vec::with_capacity(controllers.mana.len());
+    tracing::info!("[AGHOSN] aboud to do the add_network but only if mana is not empty, dma_mode is {:?}", uh_network_settings.dma_mode);
     if !controllers.mana.is_empty() {
         let _span = tracing::info_span!("network_settings", CVM_ALLOWED).entered();
         for nic_config in controllers.mana.into_iter() {
@@ -2946,8 +2969,17 @@ async fn new_underhill_vm(
             netvsp_state.push(save_state);
         }
     }
+    
+    {
+        let nics_len = uh_network_settings.nics.len();
+        let vp_count = uh_network_settings.vp_count;
+        tracing::info!("[AGHOSN] the uhnetwork settings {} and vp count {}", nics_len,
+            vp_count);
+    }
     let network_settings: Option<Box<dyn LoadedVmNetworkSettings>> =
         Some(Box::new(uh_network_settings));
+
+    
 
     if let Some(framebuffer) = remote_console_cfg.framebuffer {
         resolver.add_resolver(FramebufferRemoteControl {
@@ -2975,6 +3007,7 @@ async fn new_underhill_vm(
         );
     }
 
+    //TODO: AGHOSN this might be interesting.
     let mut vmbus_intercept_devices = Vec::new();
 
     let shutdown_relay = if let Some(recv) = intercepted_shutdown_ic {

@@ -193,7 +193,7 @@ struct QueueCfg {
 impl BasicNic {
     pub fn new(vports: Vec<VportConfig>) -> Self {
         assert!(!vports.is_empty());
-
+        tracing::info!("[AGHOSN] instantiate basic NIC.");
         let vports = vports
             .into_iter()
             .map(
