@@ -1,0 +1,56 @@
+{
+  "trials": [
+    {
+      "trial": 1,
+      "latency_ms": 14.66,
+      "download_mbps": 305.21,
+      "upload_mbps": 308.55
+    },
+    {
+      "trial": 2,
+      "latency_ms": 12.69,
+      "download_mbps": 314.25,
+      "upload_mbps": 305.04
+    },
+    {
+      "trial": 3,
+      "latency_ms": 13.64,
+      "download_mbps": 299.47,
+      "upload_mbps": 261.43
+    },
+    {
+      "trial": 4,
+      "latency_ms": 13.72,
+      "download_mbps": 279.05,
+      "upload_mbps": 254.05
+    },
+    {
+      "trial": 5,
+      "latency_ms": 14.49,
+      "download_mbps": 303.80,
+      "upload_mbps": 143.52
+    }
+  ],
+  "latency_ms": {
+    "mean": 13.84,
+    "median": 13.72,
+    "stdev": 0.70,
+    "min": 12.69,
+    "max": 14.66
+  },
+  "download_mbps": {
+    "mean": 300.36,
+    "median": 303.80,
+    "stdev": 11.69,
+    "min": 279.05,
+    "max": 314.25
+  },
+  "upload_mbps": {
+    "mean": 254.52,
+    "median": 261.43,
+    "stdev": 59.73,
+    "min": 143.52,
+    "max": 308.55
+  }
+}
+
