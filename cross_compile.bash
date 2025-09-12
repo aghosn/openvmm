@@ -78,9 +78,12 @@ if [[ $1 == "build" || $1 == "run" ]]; then
         #--no-alias-map --net uh:consomme --vmbus-redirect
         # This works:  --no-alias-map --nic --vmbus-redirect
         # This works as well: --nic
+        # --nic seesm to default to consomme.
         # --tpm doesn't work for some reason.
         # This works: --no-alias-map --nic --net vtl2:dio
-        args+=" --halt-on-reset --log-file $log_file --hv --vtl2 --igvm $windows_temp_win\\$ohcl_name --virtio-net vtl2:dio --vmbus-redirect --vtl2-vsock-path $uhdiag_path --com3 term"
+        # This works: --virtio-net vtl2:dio --vmbus-redirect
+        #
+        args+=" --halt-on-reset --log-file $log_file --hv --vtl2 --igvm $windows_temp_win\\$ohcl_name --no-alias-map --net uh:consomme --vmbus-redirect --vtl2-vsock-path $uhdiag_path --com3 term"
 
         echo "Building OpenHCL..."
         (
@@ -137,6 +140,7 @@ if [[ $1 == "build" || $1 == "run" ]]; then
         cp -u "$base_win/openvmm.exe" $openvmm_path -f
         mkdir -p "$windows_enlistment/$base_win"
         cp -u "$base_win/openvmm.exe" "$windows_enlistment/$base_win/openvmm.exe" -f
+        cp -u "$base_win/ohcldiag-dev.exe" "$windows_enlistment/$base_win/ohcldiag-dev.exe" -f
     )
     if $copy_remote; then
         (
