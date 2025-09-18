@@ -526,6 +526,9 @@ impl Queue for PacketCaptureQueue {
                     let copy_length = std::cmp::min(buf.len() - len, segment.len as usize);
                     let _ = self.mem.read_at(segment.gpa, &mut buf[len..]);
                     len += copy_length;
+                    if copy_length != 0 {
+                        tracing::info!("[AGHOSN] capture gpa: {:#x}", segment.gpa);
+                    }
                 }
 
                 if len == 0 {

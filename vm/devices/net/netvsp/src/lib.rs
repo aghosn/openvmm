@@ -2261,6 +2261,35 @@ impl SendBuffer {
     }
 }
 
+fn is_icmp(buf: &[u8]) -> bool {
+    // Need at least Ethernet + minimum IPv4 header
+    if buf.len() < 14 + 20 {
+        return false;
+    }
+
+    // Parse Ethernet EtherType
+    let ethertype = u16::from_be_bytes([buf[12], buf[13]]);
+    if ethertype != 0x0800 {
+        return false; // not IPv4
+    }
+
+    // Start of IPv4 header
+    let ip_start = 14;
+
+    // Extract IHL (lower 4 bits of first byte), in 32-bit words
+    let ihl = (buf[ip_start] & 0x0f) as usize * 4;
+    if ihl < 20 {
+        return false; // invalid IPv4 header
+    }
+    if buf.len() < ip_start + ihl {
+        return false; // truncated
+    }
+
+    // Protocol field at offset 9 in IPv4 header
+    let proto = buf[ip_start + 9];
+    proto == 1 // ICMP (for IPv4)
+}
+
 impl<T: RingMem> NetChannel<T> {
     /// Process a single RNDIS message.
     fn handle_rndis_message(
@@ -2448,6 +2477,9 @@ impl<T: RingMem> NetChannel<T> {
                 gpa: range.start,
                 len: range.len() as u32,
             });
+            if range.len() > 0 {
+                tracing::info!("[AGHOSN] range addr: {:#x}", range.start);
+            }
         }
 
         metadata.segment_count = segments.len() - start;
@@ -2462,6 +2494,31 @@ impl<T: RingMem> NetChannel<T> {
 
         segments[start].ty = net_backend::TxSegmentType::Head(metadata);
 
+        //TODO AGHOSN: this could be the right place to intercept and filter.
+        segments.retain(|x| {
+            if x.len == 0 {
+                tracing::info!("[AGHOSN] len 0 type {:?}", x.ty);
+                return true;
+            }
+            let mut buf = vec![0; x.len as usize];
+            if mem.read_at(x.gpa, &mut buf).is_err() {
+                // Failed, we continue but this shouldn't be the case.
+                tracing::info!("[AGHOSN] failed to read.");
+                return true;
+            }
+            if is_icmp(&buf) {
+                tracing::info!("[AGHOSN] found a packet to drop {:?}.", x.ty);
+                // Maybe because this is a tail one.
+                return false;
+            }
+
+            tracing::info!("[AGHOSN] ty: {:?} gpa: {:#x} content: {:x?}", x.ty, x.gpa, &buf[..30]);
+
+            return true;
+        });
+        if segments.len() > 0 {
+            tracing::info!("[AGHOSN] The length of the segments {}.", segments.len());
+        }
         Ok(())
     }
 
@@ -5114,9 +5171,12 @@ impl<T: 'static + RingMem> NetChannel<T> {
         // Drain completed transmits.
         let result = epqueue.tx_poll(&mut data.tx_done);
 
-        match result {
+        //tracing::info!("[AGHOSN] process endpoint tx.");
+
+       let res = match result {
             Ok(n) => {
                 if n == 0 {
+         //           tracing::info!("[AGHOSN] process endpoint tx returned.");
                     return Ok(false);
                 }
 
@@ -5154,7 +5214,10 @@ impl<T: 'static + RingMem> NetChannel<T> {
                 Err(WorkerError::EndpointRequiresQueueRestart(err))
             }
             Err(TxError::Fatal(err)) => Err(WorkerError::Endpoint(err)),
-        }
+        };
+
+        //tracing::info!("[AGHOSN] process endpoint tx returned.");
+        return res;
     }
 
     fn switch_data_path(
@@ -5220,6 +5283,7 @@ impl<T: 'static + RingMem> NetChannel<T> {
     ) -> Result<bool, WorkerError> {
         let mut total_packets = 0;
         let mut did_some_work = false;
+        //tracing::info!("[AGHOSN] process_ring_buffer");
         loop {
             if state.free_tx_packets.is_empty() || !data.tx_segments.is_empty() {
                 break;
@@ -5350,6 +5414,7 @@ impl<T: 'static + RingMem> NetChannel<T> {
                 }
             }
         }
+        //tracing::info!("[AGHOSN] process ring buffer returned.");
         state.stats.tx_packets_per_wake.add_sample(total_packets);
         Ok(did_some_work)
     }
